@@ -26,6 +26,8 @@ have
 be
 one
 !
+,
+.
 all
 at
 by
