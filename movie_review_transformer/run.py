@@ -1,5 +1,5 @@
-from data import get_batch
+from model import Movie_Review_Model
 
-X, Y = get_batch(1)
-print(X)
-print(Y)
+mod = Movie_Review_Model()
+mod.load("mod.pt")
+mod.test_network()
