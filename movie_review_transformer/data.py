@@ -5,7 +5,8 @@ from torch.utils.data import Dataset
 # Dictionary Class
 class MovieReviewDictionary():
     
-    def __init__(self):
+    def __init__(self, pad=3000):
+        self.pad = pad
         self.word2idx = {"NULL":0}
         self.idx2word = ["NULL"]
         self.build_dictionary()
@@ -19,8 +20,10 @@ class MovieReviewDictionary():
                 else:
                     tokens[idx] = 0
                     continue
-            tokens[idx] = int(self.word2idx[word.lower()])
-        return tokens
+            tokens[idx] = self.word2idx[word.lower()]
+        if len(tokens) >= self.pad: tokens = tokens[:pad]
+        else: tokens = np.pad(tokens, (0, self.pad-len(tokens)), 'constant', constant_values=(0,0))
+        return tokens.astype('int32')
 
     def wordize(self, tokens):
         words = np.empty(len(tokens), dtype=object)
@@ -48,8 +51,8 @@ rdict = MovieReviewDictionary() # Make Global
 # Dataset Class
 class MovieReviewDataset(Dataset):
     def __init__(self, tokens, labels):
-        self.tokens = tokens
-        self.labels = labels
+        self.tokens = torch.tensor(np.array(tokens)).to('cuda')
+        self.labels = torch.tensor(np.array(labels)).to('cuda')
 
     def __len__(self):
         return len(self.labels)
@@ -62,45 +65,40 @@ class MovieReviewDataset(Dataset):
 # Get Batch of Data
 def get_batch(size, set="train", pad=3000):
 
-    pos = os.listdir(f"./{set}/pos")
-    neg = os.listdir(f"./{set}/neg")
-
+    # Batch variables
     I, X, Y = [], [], []
     hsize = int(np.ceil(size/2))
+    
+    # Get half positive examples
+    pos = os.listdir(f"./{set}/pos")
     pos = random.sample(pos, hsize)
-    neg = random.sample(neg, hsize)
-
     for pp in pos:
         with open(f'./{set}/pos/{pp}', encoding="utf8") as f:
             lines = f.readlines()[0]
         lines = re.findall(r"[\w']+|[.,!?;]", lines)
         I.append(pp)
         X.append(lines)
-        Y.append(1)
+        Y.append([0, 1])
 
+    # Get half negative examples
+    neg = os.listdir(f"./{set}/neg")
+    neg = random.sample(neg, hsize)
     for nn in neg:
         with open(f'./{set}/neg/{nn}', encoding="utf8") as f:
             lines = f.readlines()[0]
         lines = re.findall(r"[\w']+|[.,!?;]", lines)
         I.append(nn)
         X.append(lines)
-        Y.append(0)
+        Y.append([1, 0])
     
-    for idx in np.arange(len(X)):
-        if len(X[idx]) >= pad:
-            X[idx] = X[idx][:pad]
-        else:
-            X[idx] = np.pad(X[idx], (0,pad-len(X[idx])), 'constant', constant_values=(0,0))
-
-    X = [rdict.tokenize(xx).astype('int32') for xx in X]
+    # Tokenize data
+    X = [rdict.tokenize(xx) for xx in X]
     return I, X, Y
 
 # Get a Batch with Size of All Data
 def get_all(set="train"):
     return get_batch(25000, set)
 
-I_train, X_train, Y_train = get_all("train")
-train_data = MovieReviewDataset(X_train, Y_train)
-I_test, X_test, Y_test = get_all("test")
-test_data = MovieReviewDataset(X_test, Y_test)
-
+def get_dataset(size=10000, set="train"):
+    I, X, Y = get_batch(size, set)
+    return MovieReviewDataset(X, Y)
