@@ -1,8 +1,9 @@
-import torch, math, torchmetrics
+import torch, math
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
+from torchmetrics.classification import BinaryConfusionMatrix
 
 class PositionalEncoding(nn.Module):
 
@@ -99,7 +100,7 @@ class Movie_Review_Model():
                  ntoken, max_len,
                  d_model=64, nhead=4, 
                  dim_feedforward=256, num_encoder_layers=6, 
-                 dropout=0.5, learning_rate=4.12E-5, 
+                 dropout=0.3, learning_rate=4.12E-5, 
                  batch_size=64, epochs=20000):
         self.ntoken = ntoken
         self.max_len = max_len
@@ -131,8 +132,18 @@ class Movie_Review_Model():
 
         print('Finished Training')
 
-    def test_network(self, test_data, k=5):
+    def test_network(self, test_data):
         self.model.eval()
+        result = torch.tensor([[0,0],[0,0]]).to("cuda")
+        bcm = BinaryConfusionMatrix()
+        bcm.cuda()
+        testloader = DataLoader(test_data, batch_size=self.batch_size, shuffle=True)
+        for _, (text, labels) in enumerate(testloader):
+            lab = torch.argmax(torch.reshape(labels, (-1, 2)).float(), dim=1)
+            pred = torch.argmax(self.model(text), dim=1)
+            batch_res = bcm(pred, lab)
+            result = result + batch_res
+        return result
     
     # Save network to disc
     def save(self, path):

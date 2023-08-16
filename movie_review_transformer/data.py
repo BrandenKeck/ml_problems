@@ -102,3 +102,7 @@ def get_all(set="train"):
 def get_dataset(size=10000, set="train"):
     I, X, Y = get_batch(size, set)
     return MovieReviewDataset(X, Y)
+
+def get_data(size=10000, set="train"):
+    I, X, Y = get_batch(size, set)
+    return X, Y
