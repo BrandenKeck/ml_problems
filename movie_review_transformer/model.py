@@ -51,7 +51,7 @@ class TransformerModel(nn.Transformer):
                  ntoken, max_len,
                  d_model, nhead, 
                  dim_feedforward, num_encoder_layers, 
-                 dropout):
+                 dropout, device):
         super(TransformerModel, self).__init__(d_model=d_model, 
                                                nhead=nhead, 
                                                dim_feedforward=dim_feedforward, 
@@ -59,6 +59,7 @@ class TransformerModel(nn.Transformer):
         self.src_mask = None
         self.max_len = max_len
         self.d_model = d_model
+        self.device = device
         self.input_emb = nn.Embedding(ntoken, d_model)
         self.pos_encoder = PositionalEncoding(d_model, dropout, max_len)
         self.lrelu = nn.LeakyReLU()
@@ -77,7 +78,7 @@ class TransformerModel(nn.Transformer):
         # Transformer Part
         if has_mask:
             if self.src_mask is None or self.src_mask.size(0) != len(src):
-                mask = self._generate_square_subsequent_mask(len(src)).to("cuda")
+                mask = self._generate_square_subsequent_mask(len(src)).to(self.device)
                 self.src_mask = mask
         else:
             self.src_mask = None
@@ -101,12 +102,14 @@ class Movie_Review_Model():
                  d_model=64, nhead=4, 
                  dim_feedforward=256, num_encoder_layers=6, 
                  dropout=0.3, learning_rate=4.12E-5, 
-                 batch_size=64, epochs=20000):
+                 batch_size=64, epochs=20000, device="cuda:0"):
         self.ntoken = ntoken
         self.max_len = max_len
         self.d_model = d_model
+        self.device = device
         self.model = TransformerModel(ntoken, max_len, d_model, nhead,
-                                    dim_feedforward, num_encoder_layers, dropout).to('cuda')
+                                    dim_feedforward, num_encoder_layers, 
+                                    dropout, device).to(device)
         self.lr = learning_rate
         self.batch_size = batch_size
         self.epochs = epochs
@@ -134,9 +137,8 @@ class Movie_Review_Model():
 
     def test_network(self, test_data):
         self.model.eval()
-        result = torch.tensor([[0,0],[0,0]]).to("cuda")
-        bcm = BinaryConfusionMatrix()
-        bcm.cuda()
+        result = torch.tensor([[0,0],[0,0]]).to(self.device)
+        bcm = BinaryConfusionMatrix().to(self.device)
         testloader = DataLoader(test_data, batch_size=self.batch_size, shuffle=True)
         for _, (text, labels) in enumerate(testloader):
             lab = torch.argmax(torch.reshape(labels, (-1, 2)).float(), dim=1)

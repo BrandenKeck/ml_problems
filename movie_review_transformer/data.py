@@ -50,9 +50,9 @@ rdict = MovieReviewDictionary() # Make Global
 
 # Dataset Class
 class MovieReviewDataset(Dataset):
-    def __init__(self, tokens, labels):
-        self.tokens = torch.tensor(np.array(tokens)).to('cuda')
-        self.labels = torch.tensor(np.array(labels)).to('cuda')
+    def __init__(self, tokens, labels, device='cuda:0'):
+        self.tokens = torch.tensor(np.array(tokens)).to(device)
+        self.labels = torch.tensor(np.array(labels)).to(device)
 
     def __len__(self):
         return len(self.labels)
@@ -95,14 +95,6 @@ def get_batch(size, set="train", pad=3000):
     X = [rdict.tokenize(xx) for xx in X]
     return I, X, Y
 
-# Get a Batch with Size of All Data
-def get_all(set="train"):
-    return get_batch(25000, set)
-
-def get_dataset(size=10000, set="train"):
+def get_dataset(size=10000, set="train", device='cuda:0'):
     I, X, Y = get_batch(size, set)
-    return MovieReviewDataset(X, Y)
-
-def get_data(size=10000, set="train"):
-    I, X, Y = get_batch(size, set)
-    return X, Y
+    return MovieReviewDataset(X, Y, device=device)
