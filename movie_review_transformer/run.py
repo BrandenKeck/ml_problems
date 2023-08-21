@@ -2,7 +2,7 @@ import os
 from data import get_dataset
 from model import Movie_Review_Model
 
-DEVICE='cuda:0'
+DEVICE='cuda:1'
 
 mod = Movie_Review_Model(120000, 3000, batch_size=12, device=DEVICE)
 if os.path.isfile("mod.pt"): 
