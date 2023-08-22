@@ -1,7 +1,10 @@
-import torch
+import torch, torchrl
 import numpy as np
 from tensordict import TensorDict
-from torchrl.data import ReplayBuffer
+
+
+from problem import LeftRight
+lr = LeftRight(50, 0, -100, 100)
 
 # Create a TensorDict
 def get_dict(batch_size = 5):
